@@ -131,7 +131,7 @@ export default function VitalSignsPage() {
         .order("recorded_at", { ascending: false })
         .limit(100);
 
-      if (selectedPatient) {
+      if (selectedPatient && selectedPatient !== "all") {
         query = query.eq("patient_id", selectedPatient);
       }
 
@@ -435,7 +435,7 @@ export default function VitalSignsPage() {
                 <SelectValue placeholder="All patients" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All patients</SelectItem>
+                <SelectItem value="all">All patients</SelectItem>
                 {patients?.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.last_name}, {p.first_name}

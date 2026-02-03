@@ -52,7 +52,7 @@ interface PrescriptionFormData {
 }
 
 const DEA_SCHEDULES = [
-  { value: "", label: "None (Non-controlled)" },
+  { value: "none", label: "None (Non-controlled)" },
   { value: "II", label: "Schedule II" },
   { value: "III", label: "Schedule III" },
   { value: "IV", label: "Schedule IV" },
@@ -74,7 +74,7 @@ export default function PrescriptionsPage() {
     quantity_unit: "tablets",
     refills: "0",
     days_supply: "",
-    dea_schedule: "",
+    dea_schedule: "none",
     dispense_as_written: false,
     pharmacy_name: "",
     pharmacy_address: "",
@@ -124,7 +124,7 @@ export default function PrescriptionsPage() {
         `)
         .order("created_at", { ascending: false });
 
-      if (statusFilter) {
+      if (statusFilter && statusFilter !== "all") {
         query = query.eq("status", statusFilter);
       }
 
@@ -149,7 +149,7 @@ export default function PrescriptionsPage() {
         quantity_unit: data.quantity_unit,
         refills: parseInt(data.refills),
         days_supply: data.days_supply ? parseInt(data.days_supply) : null,
-        dea_schedule: data.dea_schedule || null,
+        dea_schedule: data.dea_schedule === "none" ? null : data.dea_schedule,
         dispense_as_written: data.dispense_as_written,
         pharmacy_name: data.pharmacy_name || null,
         pharmacy_address: data.pharmacy_address || null,
@@ -200,7 +200,7 @@ export default function PrescriptionsPage() {
       quantity_unit: "tablets",
       refills: "0",
       days_supply: "",
-      dea_schedule: "",
+      dea_schedule: "none",
       dispense_as_written: false,
       pharmacy_name: "",
       pharmacy_address: "",
@@ -452,7 +452,7 @@ export default function PrescriptionsPage() {
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="sent">Sent</SelectItem>
                 <SelectItem value="filled">Filled</SelectItem>

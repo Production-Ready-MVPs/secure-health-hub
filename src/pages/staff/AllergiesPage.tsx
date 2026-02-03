@@ -85,7 +85,7 @@ export default function AllergiesPage() {
         `)
         .order("created_at", { ascending: false });
 
-      if (selectedPatient) {
+      if (selectedPatient && selectedPatient !== "all") {
         query = query.eq("patient_id", selectedPatient);
       }
 
@@ -358,7 +358,7 @@ export default function AllergiesPage() {
                 <SelectValue placeholder="All patients" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All patients</SelectItem>
+                <SelectItem value="all">All patients</SelectItem>
                 {patients?.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.last_name}, {p.first_name}

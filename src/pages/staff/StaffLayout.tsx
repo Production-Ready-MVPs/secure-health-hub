@@ -6,7 +6,7 @@ import { ScreenPrivacy } from "@/components/security/ScreenPrivacy";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import {
   Users,
-  Calendar,
+  CalendarDays,
   FileText,
   Shield,
   LogOut,
@@ -14,12 +14,14 @@ import {
   ClipboardList,
   Settings,
   ShieldAlert,
+  Stethoscope,
 } from "lucide-react";
 
 const navItems = [
   { href: "/staff", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "provider", "compliance_officer"] },
   { href: "/staff/patients", label: "Patients", icon: Users, roles: ["admin", "provider"] },
-  { href: "/staff/encounters", label: "Encounters", icon: Calendar, roles: ["admin", "provider"] },
+  { href: "/staff/encounters", label: "Encounters", icon: Stethoscope, roles: ["admin", "provider"] },
+  { href: "/staff/appointments", label: "Appointments", icon: CalendarDays, roles: ["admin", "provider"] },
   { href: "/staff/audit-logs", label: "Audit Logs", icon: FileText, roles: ["admin", "compliance_officer"] },
   { href: "/staff/compliance", label: "Compliance", icon: ClipboardList, roles: ["admin", "compliance_officer"] },
   { href: "/staff/admin", label: "Admin", icon: Shield, roles: ["admin"] },

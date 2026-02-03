@@ -137,6 +137,51 @@ export type Database = {
         }
         Relationships: []
       }
+      phi_access_logs: {
+        Row: {
+          access_reason: string | null
+          action: string
+          id: string
+          ip_address: unknown
+          patient_id: string | null
+          request_hash: string | null
+          resource_id: string | null
+          resource_type: string
+          session_id: string | null
+          timestamp: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          access_reason?: string | null
+          action: string
+          id?: string
+          ip_address?: unknown
+          patient_id?: string | null
+          request_hash?: string | null
+          resource_id?: string | null
+          resource_type: string
+          session_id?: string | null
+          timestamp?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          access_reason?: string | null
+          action?: string
+          id?: string
+          ip_address?: unknown
+          patient_id?: string | null
+          request_hash?: string | null
+          resource_id?: string | null
+          resource_type?: string
+          session_id?: string | null
+          timestamp?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       providers: {
         Row: {
           created_at: string
@@ -232,6 +277,20 @@ export type Database = {
       is_provider_for_assignment: {
         Args: { _assignment_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_phi_access: {
+        Args: {
+          _access_reason?: string
+          _action: string
+          _ip_address?: unknown
+          _patient_id: string
+          _request_hash?: string
+          _resource_id: string
+          _resource_type: string
+          _session_id?: string
+          _user_agent?: string
+        }
+        Returns: string
       }
     }
     Enums: {

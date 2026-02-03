@@ -1,1 +1,4 @@
 project_id = "plugtycyjnmigzlvwchu"
+
+[functions.phi-encryption]
+verify_jwt = true

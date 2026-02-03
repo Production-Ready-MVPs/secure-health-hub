@@ -2,3 +2,6 @@ project_id = "plugtycyjnmigzlvwchu"
 
 [functions.phi-encryption]
 verify_jwt = true
+
+[functions.access-control]
+verify_jwt = false

@@ -225,6 +225,14 @@ export type Database = {
         Args: { _patient_id: string; _user_id: string }
         Returns: boolean
       }
+      is_patient_for_assignment: {
+        Args: { _assignment_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_provider_for_assignment: {
+        Args: { _assignment_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "patient" | "provider" | "admin" | "compliance_officer"

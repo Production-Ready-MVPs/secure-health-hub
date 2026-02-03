@@ -22,8 +22,13 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await signIn(email, password);
-      navigate("/dashboard");
+      const result = await signIn(email, password);
+      
+      if (result.requiresMFA) {
+        navigate("/mfa/verify");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
     } finally {

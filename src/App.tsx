@@ -12,6 +12,11 @@ import Signup from "@/pages/Signup";
 import Unauthorized from "@/pages/Unauthorized";
 import NotFound from "@/pages/NotFound";
 
+// MFA pages
+import MFAEnroll from "@/pages/MFAEnroll";
+import MFAVerify from "@/pages/MFAVerify";
+import MFASettings from "@/pages/MFASettings";
+
 // Dashboard router
 import Dashboard from "@/pages/Dashboard";
 
@@ -47,6 +52,17 @@ const App = () => (
             <Route path="/signup" element={<Signup />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
 
+            {/* MFA routes */}
+            <Route
+              path="/mfa/enroll"
+              element={
+                <ProtectedRoute>
+                  <MFAEnroll />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/mfa/verify" element={<MFAVerify />} />
+
             {/* Dashboard router (redirects based on role) */}
             <Route
               path="/dashboard"
@@ -72,6 +88,7 @@ const App = () => (
               <Route path="audit-logs" element={<AuditLogsPage />} />
               <Route path="compliance" element={<CompliancePage />} />
               <Route path="admin" element={<AdminPage />} />
+              <Route path="security" element={<MFASettings />} />
             </Route>
 
             {/* Patient portal */}

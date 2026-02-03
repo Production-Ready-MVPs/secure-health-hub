@@ -29,6 +29,9 @@ import AuditLogsPage from "@/pages/staff/AuditLogsPage";
 import CompliancePage from "@/pages/staff/CompliancePage";
 import AdminPage from "@/pages/staff/AdminPage";
 import AppointmentsPage from "@/pages/staff/AppointmentsPage";
+import AllergiesPage from "@/pages/staff/AllergiesPage";
+import VitalSignsPage from "@/pages/staff/VitalSignsPage";
+import PrescriptionsPage from "@/pages/staff/PrescriptionsPage";
 
 // Patient portal
 import PatientLayout from "@/pages/patient/PatientLayout";
@@ -89,6 +92,9 @@ const App = () => (
               <Route path="patients" element={<PatientsPage />} />
               <Route path="encounters" element={<EncountersPage />} />
               <Route path="appointments" element={<AppointmentsPage />} />
+              <Route path="allergies" element={<AllergiesPage />} />
+              <Route path="vital-signs" element={<VitalSignsPage />} />
+              <Route path="prescriptions" element={<PrescriptionsPage />} />
               <Route path="audit-logs" element={<AuditLogsPage />} />
               <Route path="compliance" element={<CompliancePage />} />
               <Route path="admin" element={<AdminPage />} />

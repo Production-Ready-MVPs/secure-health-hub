@@ -15,6 +15,9 @@ import {
   Settings,
   ShieldAlert,
   Stethoscope,
+  AlertTriangle,
+  Activity,
+  Pill,
 } from "lucide-react";
 
 const navItems = [
@@ -22,6 +25,9 @@ const navItems = [
   { href: "/staff/patients", label: "Patients", icon: Users, roles: ["admin", "provider"] },
   { href: "/staff/encounters", label: "Encounters", icon: Stethoscope, roles: ["admin", "provider"] },
   { href: "/staff/appointments", label: "Appointments", icon: CalendarDays, roles: ["admin", "provider"] },
+  { href: "/staff/allergies", label: "Allergies", icon: AlertTriangle, roles: ["admin", "provider"] },
+  { href: "/staff/vital-signs", label: "Vital Signs", icon: Activity, roles: ["admin", "provider"] },
+  { href: "/staff/prescriptions", label: "Prescriptions", icon: Pill, roles: ["admin", "provider"] },
   { href: "/staff/audit-logs", label: "Audit Logs", icon: FileText, roles: ["admin", "compliance_officer"] },
   { href: "/staff/compliance", label: "Compliance", icon: ClipboardList, roles: ["admin", "compliance_officer"] },
   { href: "/staff/admin", label: "Admin", icon: Shield, roles: ["admin"] },

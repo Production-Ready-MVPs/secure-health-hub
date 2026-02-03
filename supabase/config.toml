@@ -5,3 +5,9 @@ verify_jwt = true
 
 [functions.access-control]
 verify_jwt = false
+
+[functions.voice-transcription]
+verify_jwt = true
+
+[functions.digital-signature]
+verify_jwt = false

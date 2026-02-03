@@ -264,39 +264,88 @@ export type Database = {
       }
       clinical_notes: {
         Row: {
+          amended_from_id: string | null
+          amendment_reason: string | null
           author_id: string
           content_encrypted: string | null
           created_at: string
+          dictation_audio_path: string | null
           encounter_id: string
           id: string
+          is_amendment: boolean
+          is_signed: boolean
           note_type: string
+          signature_certificate: string | null
+          signature_hash: string | null
+          signature_timestamp: string | null
           signed_at: string | null
           signed_by: string | null
+          soap_assessment: string | null
+          soap_objective: string | null
+          soap_plan: string | null
+          soap_subjective: string | null
+          template_id: string | null
+          transcription_method: string | null
           updated_at: string
         }
         Insert: {
+          amended_from_id?: string | null
+          amendment_reason?: string | null
           author_id: string
           content_encrypted?: string | null
           created_at?: string
+          dictation_audio_path?: string | null
           encounter_id: string
           id?: string
+          is_amendment?: boolean
+          is_signed?: boolean
           note_type: string
+          signature_certificate?: string | null
+          signature_hash?: string | null
+          signature_timestamp?: string | null
           signed_at?: string | null
           signed_by?: string | null
+          soap_assessment?: string | null
+          soap_objective?: string | null
+          soap_plan?: string | null
+          soap_subjective?: string | null
+          template_id?: string | null
+          transcription_method?: string | null
           updated_at?: string
         }
         Update: {
+          amended_from_id?: string | null
+          amendment_reason?: string | null
           author_id?: string
           content_encrypted?: string | null
           created_at?: string
+          dictation_audio_path?: string | null
           encounter_id?: string
           id?: string
+          is_amendment?: boolean
+          is_signed?: boolean
           note_type?: string
+          signature_certificate?: string | null
+          signature_hash?: string | null
+          signature_timestamp?: string | null
           signed_at?: string | null
           signed_by?: string | null
+          soap_assessment?: string | null
+          soap_objective?: string | null
+          soap_plan?: string | null
+          soap_subjective?: string | null
+          template_id?: string | null
+          transcription_method?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "clinical_notes_amended_from_id_fkey"
+            columns: ["amended_from_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_notes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clinical_notes_author_id_fkey"
             columns: ["author_id"]
@@ -316,6 +365,13 @@ export type Database = {
             columns: ["signed_by"]
             isOneToOne: false
             referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_notes_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "note_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -782,6 +838,102 @@ export type Database = {
           },
         ]
       }
+      note_amendments: {
+        Row: {
+          amended_at: string
+          amended_by: string
+          amended_note_id: string
+          amendment_reason: string
+          id: string
+          original_note_id: string
+        }
+        Insert: {
+          amended_at?: string
+          amended_by: string
+          amended_note_id: string
+          amendment_reason: string
+          id?: string
+          original_note_id: string
+        }
+        Update: {
+          amended_at?: string
+          amended_by?: string
+          amended_note_id?: string
+          amendment_reason?: string
+          id?: string
+          original_note_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_amendments_amended_by_fkey"
+            columns: ["amended_by"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_amendments_amended_note_id_fkey"
+            columns: ["amended_note_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_amendments_original_note_id_fkey"
+            columns: ["original_note_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          note_type: string
+          specialty: string | null
+          template_content: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          note_type: string
+          specialty?: string | null
+          template_content?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          note_type?: string
+          specialty?: string | null
+          template_content?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_provider_assignments: {
         Row: {
           assigned_at: string
@@ -1107,6 +1259,60 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      signature_log: {
+        Row: {
+          content_hash: string
+          id: string
+          ip_address: unknown
+          note_id: string
+          signature_hash: string
+          signature_method: string
+          signed_at: string
+          signer_id: string
+          user_agent: string | null
+          verification_status: string
+        }
+        Insert: {
+          content_hash: string
+          id?: string
+          ip_address?: unknown
+          note_id: string
+          signature_hash: string
+          signature_method?: string
+          signed_at?: string
+          signer_id: string
+          user_agent?: string | null
+          verification_status?: string
+        }
+        Update: {
+          content_hash?: string
+          id?: string
+          ip_address?: unknown
+          note_id?: string
+          signature_hash?: string
+          signature_method?: string
+          signed_at?: string
+          signer_id?: string
+          user_agent?: string | null
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signature_log_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signature_log_signer_id_fkey"
+            columns: ["signer_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

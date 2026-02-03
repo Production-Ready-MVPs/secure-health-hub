@@ -214,7 +214,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_assigned_provider: {
+        Args: { _patient_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "patient" | "provider" | "admin" | "compliance_officer"

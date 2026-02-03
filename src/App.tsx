@@ -2,9 +2,34 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+
+// Public pages
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import Unauthorized from "@/pages/Unauthorized";
+import NotFound from "@/pages/NotFound";
+
+// Dashboard router
+import Dashboard from "@/pages/Dashboard";
+
+// Staff portal
+import StaffLayout from "@/pages/staff/StaffLayout";
+import StaffDashboard from "@/pages/staff/StaffDashboard";
+import PatientsPage from "@/pages/staff/PatientsPage";
+import EncountersPage from "@/pages/staff/EncountersPage";
+import AuditLogsPage from "@/pages/staff/AuditLogsPage";
+import CompliancePage from "@/pages/staff/CompliancePage";
+import AdminPage from "@/pages/staff/AdminPage";
+
+// Patient portal
+import PatientLayout from "@/pages/patient/PatientLayout";
+import PatientDashboard from "@/pages/patient/PatientDashboard";
+import PatientEncounters from "@/pages/patient/PatientEncounters";
+import PatientMedications from "@/pages/patient/PatientMedications";
+import PatientAccessLogs from "@/pages/patient/PatientAccessLogs";
 
 const queryClient = new QueryClient();
 
@@ -14,11 +39,60 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
+
+            {/* Dashboard router (redirects based on role) */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Staff portal */}
+            <Route
+              path="/staff"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "provider", "compliance_officer"]}>
+                  <StaffLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<StaffDashboard />} />
+              <Route path="patients" element={<PatientsPage />} />
+              <Route path="encounters" element={<EncountersPage />} />
+              <Route path="audit-logs" element={<AuditLogsPage />} />
+              <Route path="compliance" element={<CompliancePage />} />
+              <Route path="admin" element={<AdminPage />} />
+            </Route>
+
+            {/* Patient portal */}
+            <Route
+              path="/patient"
+              element={
+                <ProtectedRoute allowedRoles={["patient"]}>
+                  <PatientLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<PatientDashboard />} />
+              <Route path="encounters" element={<PatientEncounters />} />
+              <Route path="medications" element={<PatientMedications />} />
+              <Route path="access-logs" element={<PatientAccessLogs />} />
+            </Route>
+
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

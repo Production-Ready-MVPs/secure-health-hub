@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   Activity,
   Pill,
+  Database,
 } from "lucide-react";
 
 const navItems = [
@@ -32,6 +33,7 @@ const navItems = [
   { href: "/staff/compliance", label: "Compliance", icon: ClipboardList, roles: ["admin", "compliance_officer"] },
   { href: "/staff/admin", label: "Admin", icon: Shield, roles: ["admin"] },
   { href: "/staff/security", label: "Security", icon: Settings, roles: ["admin", "provider", "compliance_officer"] },
+  { href: "/staff/demo-data", label: "Demo Data", icon: Database, roles: ["admin"] },
 ];
 
 export default function StaffLayout() {

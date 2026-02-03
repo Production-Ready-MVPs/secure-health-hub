@@ -32,6 +32,7 @@ import AppointmentsPage from "@/pages/staff/AppointmentsPage";
 import AllergiesPage from "@/pages/staff/AllergiesPage";
 import VitalSignsPage from "@/pages/staff/VitalSignsPage";
 import PrescriptionsPage from "@/pages/staff/PrescriptionsPage";
+import DemoDataPage from "@/pages/staff/DemoDataPage";
 
 // Patient portal
 import PatientLayout from "@/pages/patient/PatientLayout";
@@ -99,6 +100,7 @@ const App = () => (
               <Route path="compliance" element={<CompliancePage />} />
               <Route path="admin" element={<AdminPage />} />
               <Route path="security" element={<MFASettings />} />
+              <Route path="demo-data" element={<DemoDataPage />} />
             </Route>
 
             {/* Patient portal */}

@@ -4,18 +4,22 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   User,
-  Calendar,
+  CalendarDays,
   Pill,
   FileText,
   Shield,
   LogOut,
   LayoutDashboard,
+  Stethoscope,
+  FlaskConical,
 } from "lucide-react";
 
 const navItems = [
   { href: "/patient", label: "My Records", icon: LayoutDashboard },
-  { href: "/patient/encounters", label: "Visits", icon: Calendar },
+  { href: "/patient/appointments", label: "Appointments", icon: CalendarDays },
+  { href: "/patient/encounters", label: "Visits", icon: Stethoscope },
   { href: "/patient/medications", label: "Medications", icon: Pill },
+  { href: "/patient/lab-results", label: "Lab Results", icon: FlaskConical },
   { href: "/patient/access-logs", label: "Who Viewed My Data", icon: FileText },
 ];
 

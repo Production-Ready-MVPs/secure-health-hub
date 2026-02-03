@@ -33,8 +33,10 @@ import AppointmentsPage from "@/pages/staff/AppointmentsPage";
 // Patient portal
 import PatientLayout from "@/pages/patient/PatientLayout";
 import PatientDashboard from "@/pages/patient/PatientDashboard";
+import PatientAppointments from "@/pages/patient/PatientAppointments";
 import PatientEncounters from "@/pages/patient/PatientEncounters";
 import PatientMedications from "@/pages/patient/PatientMedications";
+import PatientLabResults from "@/pages/patient/PatientLabResults";
 import PatientAccessLogs from "@/pages/patient/PatientAccessLogs";
 
 const queryClient = new QueryClient();
@@ -103,8 +105,10 @@ const App = () => (
               }
             >
               <Route index element={<PatientDashboard />} />
+              <Route path="appointments" element={<PatientAppointments />} />
               <Route path="encounters" element={<PatientEncounters />} />
               <Route path="medications" element={<PatientMedications />} />
+              <Route path="lab-results" element={<PatientLabResults />} />
               <Route path="access-logs" element={<PatientAccessLogs />} />
             </Route>
 

@@ -197,7 +197,12 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     const { action } = await req.json();
 
@@ -302,7 +307,7 @@ serve(async (req) => {
       const providerUsers = createdUsers.filter(u => u.role === "provider");
       
       for (const user of providerUsers) {
-        const { data: provider, error } = await supabase.from("providers").upsert({
+        const { data: provider, error: providerError } = await supabase.from("providers").upsert({
           user_id: user.id,
           first_name: user.firstName,
           last_name: user.lastName,
@@ -314,6 +319,11 @@ serve(async (req) => {
           department: user.specialty?.includes("Nurse") ? "Nursing" : "Medicine",
           is_active: true
         }, { onConflict: "user_id" }).select().single();
+
+        if (providerError) {
+          console.error(`Error creating provider ${user.firstName} ${user.lastName}:`, providerError);
+          continue;
+        }
 
         if (provider) {
           providers.push({ 
@@ -363,7 +373,7 @@ serve(async (req) => {
         const birthYear = 1960 + Math.floor(Math.random() * 40);
         const dob = `${birthYear}-${String(Math.floor(1 + Math.random() * 12)).padStart(2, "0")}-${String(Math.floor(1 + Math.random() * 28)).padStart(2, "0")}`;
 
-        const { data: patient } = await supabase.from("patients").insert({
+        const { data: patient, error: patientError } = await supabase.from("patients").insert({
           user_id: userId,
           first_name: firstName,
           last_name: lastName,
@@ -381,6 +391,11 @@ serve(async (req) => {
           insurance_provider: randomItem(INSURANCE_PROVIDERS),
           insurance_policy_number: `POL${Math.floor(100000000 + Math.random() * 900000000)}`
         }).select().single();
+
+        if (patientError) {
+          console.error(`Error creating patient ${firstName} ${lastName}:`, patientError);
+          continue;
+        }
 
         if (patient) {
           patientData.push({ userId, patientId: patient.id, firstName, lastName });
@@ -408,7 +423,7 @@ serve(async (req) => {
         
         const dob = `${birthYear}-${String(Math.floor(1 + Math.random() * 12)).padStart(2, "0")}-${String(Math.floor(1 + Math.random() * 28)).padStart(2, "0")}`;
 
-        const { data: patient } = await supabase.from("patients").insert({
+        const { data: patient, error: patientError } = await supabase.from("patients").insert({
           first_name: firstName,
           last_name: lastName,
           date_of_birth: dob,
@@ -426,14 +441,28 @@ serve(async (req) => {
           insurance_policy_number: `POL${Math.floor(100000000 + Math.random() * 900000000)}`
         }).select().single();
 
+        if (patientError) {
+          console.error(`Error creating patient ${firstName} ${lastName}:`, patientError);
+          continue;
+        }
+
         if (patient) {
           patientData.push({ userId: "", patientId: patient.id, firstName, lastName });
         }
       }
       results.patients = patientData.length;
 
+      // Verify we have patient data before proceeding
+      if (patientData.length === 0) {
+        throw new Error("Failed to create any patients - cannot proceed with seeding");
+      }
+
       // Step 5: Create patient-provider assignments
       const physicianProviders = providers.filter(p => !p.lastName.includes("Santos") && !p.lastName.includes("Kim"));
+      
+      if (physicianProviders.length === 0) {
+        throw new Error("No physician providers found - cannot proceed with seeding");
+      }
       
       for (const patient of patientData) {
         // Assign primary physician
@@ -460,8 +489,9 @@ serve(async (req) => {
 
       // Step 6: Create allergies (for ~15 patients, 3-4 with drug allergies)
       let allergyCount = 0;
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < Math.min(15, patientData.length); i++) {
         const patient = patientData[i];
+        if (!patient) continue;
         const numAllergies = Math.floor(1 + Math.random() * 3);
         const usedAllergens = new Set<string>();
         

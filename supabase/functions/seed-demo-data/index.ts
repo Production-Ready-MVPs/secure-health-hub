@@ -973,8 +973,9 @@ serve(async (req) => {
       }
 
       // 5 patients with Release of Information
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < Math.min(5, patientData.length); i++) {
         const patient = patientData[i];
+        if (!patient) continue;
         await supabase.from("consent_records").insert({
           patient_id: patient.patientId,
           consent_type: "Release of Information",
@@ -986,8 +987,9 @@ serve(async (req) => {
       }
 
       // 3 patients with telemedicine consent
-      for (let i = 5; i < 8; i++) {
+      for (let i = 5; i < Math.min(8, patientData.length); i++) {
         const patient = patientData[i];
+        if (!patient) continue;
         await supabase.from("consent_records").insert({
           patient_id: patient.patientId,
           consent_type: "Telemedicine Consent",
@@ -998,14 +1000,16 @@ serve(async (req) => {
       }
 
       // 1 revoked consent
-      await supabase.from("consent_records").insert({
-        patient_id: patientData[10].patientId,
-        consent_type: "Release of Information",
-        granted_at: randomDate(new Date(2023, 0, 1), new Date(2024, 0, 1)),
-        revoked_at: randomDate(new Date(2024, 6, 1), new Date()),
-        purpose: "Release records to insurance - REVOKED"
-      });
-      consentCount++;
+      if (patientData.length > 10) {
+        await supabase.from("consent_records").insert({
+          patient_id: patientData[10].patientId,
+          consent_type: "Release of Information",
+          granted_at: randomDate(new Date(2023, 0, 1), new Date(2024, 0, 1)),
+          revoked_at: randomDate(new Date(2024, 6, 1), new Date()),
+          purpose: "Release records to insurance - REVOKED"
+        });
+        consentCount++;
+      }
       results.consents = consentCount;
 
       // Step 17: Create PHI access logs (200+ entries)

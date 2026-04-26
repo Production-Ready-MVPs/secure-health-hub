@@ -48,7 +48,7 @@ export default function EncountersPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Encounters</h1>
+      <h1 className="text-2xl font-semibold mb-6">Encounters</h1>
 
       <Card>
         <CardHeader>
@@ -106,3 +106,4 @@ export default function EncountersPage() {
     </div>
   );
 }
+

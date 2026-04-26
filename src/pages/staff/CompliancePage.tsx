@@ -60,7 +60,7 @@ export default function CompliancePage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Compliance & Break-Glass Review</h1>
+      <h1 className="text-2xl font-semibold mb-6">Compliance & Break-Glass Review</h1>
 
       <Card>
         <CardHeader>
@@ -161,3 +161,4 @@ export default function CompliancePage() {
     </div>
   );
 }
+

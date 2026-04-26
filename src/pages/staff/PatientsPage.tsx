@@ -45,7 +45,7 @@ export default function PatientsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Patients</h1>
+        <h1 className="text-2xl font-semibold">Patients</h1>
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -106,3 +106,4 @@ export default function PatientsPage() {
     </div>
   );
 }
+

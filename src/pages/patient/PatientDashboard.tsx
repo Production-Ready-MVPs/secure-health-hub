@@ -99,7 +99,7 @@ export default function PatientDashboard() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Welcome, {patient.first_name}</h1>
+      <h1 className="text-2xl font-semibold mb-6">Welcome, {patient.first_name}</h1>
 
       {/* Next Appointment Banner */}
       {nextAppointment && (
@@ -237,3 +237,4 @@ export default function PatientDashboard() {
     </div>
   );
 }
+

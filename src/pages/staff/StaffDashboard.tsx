@@ -1,603 +1,376 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, FileText, AlertTriangle, Activity, Pill, Stethoscope, TrendingUp, Clock } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import {
+  Users, Calendar, FileText, AlertTriangle, Activity, Pill, Stethoscope,
+  TrendingUp, TrendingDown, Clock, Shield, ArrowRight, CheckCircle2,
+  FlaskConical, Heart, BarChart3, Bell, UserPlus, ClipboardList
+} from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 
-const CHART_COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+// Mock chart data (replace with real queries as needed)
+const encounterTrend = [
+  { name: "Mon", visits: 12 }, { name: "Tue", visits: 19 }, { name: "Wed", visits: 15 },
+  { name: "Thu", visits: 22 }, { name: "Fri", visits: 18 }, { name: "Sat", visits: 8 }, { name: "Sun", visits: 5 },
+];
+const appointmentTypes = [
+  { name: "Check-up", value: 35 }, { name: "Follow-up", value: 28 },
+  { name: "Emergency", value: 12 }, { name: "Telehealth", value: 25 },
+];
+const monthlyPatients = [
+  { month: "Jan", new: 24, returning: 45 }, { month: "Feb", new: 18, returning: 52 },
+  { month: "Mar", new: 32, returning: 48 }, { month: "Apr", new: 28, returning: 55 },
+  { month: "May", new: 35, returning: 60 }, { month: "Jun", new: 42, returning: 58 },
+];
+const PIE_COLORS = ["#2563EB", "#3B82F6", "#60A5FA", "#93C5FD"];
+
+const recentActivity = [
+  { id: 1, action: "New patient registered", name: "Sarah Johnson", time: "2 min ago", icon: UserPlus, color: "text-emerald-500" },
+  { id: 2, action: "Encounter completed", name: "Dr. Smith → James Wilson", time: "15 min ago", icon: Stethoscope, color: "text-blue-500" },
+  { id: 3, action: "Lab results received", name: "Emily Davis — CBC Panel", time: "32 min ago", icon: FlaskConical, color: "text-amber-500" },
+  { id: 4, action: "Prescription issued", name: "Dr. Patel → Mark Brown", time: "1 hr ago", icon: Pill, color: "text-purple-500" },
+  { id: 5, action: "Appointment scheduled", name: "Lisa Chen — Follow-up", time: "2 hr ago", icon: Calendar, color: "text-cyan-500" },
 ];
 
-interface EncountersByType {
-  type: string;
-  count: number;
-}
+const upcomingAppts = [
+  { id: 1, patient: "Sarah Johnson", type: "Annual Check-up", time: "9:00 AM", status: "Confirmed" },
+  { id: 2, patient: "James Wilson", type: "Follow-up", time: "10:30 AM", status: "Checked In" },
+  { id: 3, patient: "Emily Davis", type: "Lab Review", time: "11:15 AM", status: "Pending" },
+  { id: 4, patient: "Mark Brown", type: "Telehealth", time: "1:00 PM", status: "Confirmed" },
+  { id: 5, patient: "Lisa Chen", type: "Consultation", time: "2:30 PM", status: "Pending" },
+];
 
-interface EncountersByDate {
-  date: string;
-  count: number;
-}
-
-interface PatientsByAge {
-  range: string;
-  count: number;
-}
-
-interface VitalTrend {
-  date: string;
-  avgBpSystolic: number;
-  avgBpDiastolic: number;
-  avgHeartRate: number;
-}
-
-interface RecentEncounter {
-  id: string;
-  encounter_date: string;
-  encounter_type: string;
-  status: string;
-  chief_complaint: string | null;
-  patients: { first_name: string; last_name: string } | null;
+function StatCard({ title, value, icon: Icon, trend, trendValue, subtitle, iconBg }: any) {
+  return (
+    <Card className="relative overflow-hidden group hover:shadow-md transition-shadow">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
+            {(trend || subtitle) && (
+              <div className="flex items-center gap-1.5 pt-1">
+                {trend === "up" && <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />}
+                {trend === "down" && <TrendingDown className="h-3.5 w-3.5 text-red-500" />}
+                <span className={`text-xs font-medium ${trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-600" : "text-muted-foreground"}`}>
+                  {trendValue || subtitle}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${iconBg || "bg-primary/10"}`}>
+            <Icon className="h-5 w-5 text-primary" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function StaffDashboard() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
+  const [stats, setStats] = useState({ patients: 0, encounters: 0, pendingReviews: 0, appointments: 0, medications: 0, labOrders: 0, providers: 0, allergies: 0 });
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    patients: 0,
-    encounters: 0,
-    pendingReviews: 0,
-    appointments: 0,
-    allergies: 0,
-    prescriptions: 0,
-  });
-  const [encountersByType, setEncountersByType] = useState<EncountersByType[]>([]);
-  const [encountersByDate, setEncountersByDate] = useState<EncountersByDate[]>([]);
-  const [patientsByAge, setPatientsByAge] = useState<PatientsByAge[]>([]);
-  const [vitalTrends, setVitalTrends] = useState<VitalTrend[]>([]);
-  const [recentEncounters, setRecentEncounters] = useState<RecentEncounter[]>([]);
-  const [prescriptionsByStatus, setPrescriptionsByStatus] = useState<{status: string; count: number}[]>([]);
 
   useEffect(() => {
-    async function fetchDashboardData() {
-      try {
-        // Fetch basic counts
-        const [patientsRes, encountersRes, breakGlassRes, appointmentsRes, allergiesRes, prescriptionsRes] = await Promise.all([
-          supabase.from("patients").select("id", { count: "exact", head: true }).is("deleted_at", null),
-          supabase.from("encounters").select("id", { count: "exact", head: true }),
-          supabase.from("break_glass_logs").select("id", { count: "exact", head: true }).is("reviewed_at", null),
-          supabase.from("appointments").select("id", { count: "exact", head: true }).gte("start_time", new Date().toISOString()),
-          supabase.from("allergies").select("id", { count: "exact", head: true }).eq("status", "active"),
-          supabase.from("prescriptions").select("id", { count: "exact", head: true }),
-        ]);
-
-        setStats({
-          patients: patientsRes.count ?? 0,
-          encounters: encountersRes.count ?? 0,
-          pendingReviews: breakGlassRes.count ?? 0,
-          appointments: appointmentsRes.count ?? 0,
-          allergies: allergiesRes.count ?? 0,
-          prescriptions: prescriptionsRes.count ?? 0,
-        });
-
-        // Fetch encounters by type for pie chart
-        const { data: encTypeData } = await supabase
-          .from("encounters")
-          .select("encounter_type");
-        
-        if (encTypeData) {
-          const typeCounts = encTypeData.reduce((acc: Record<string, number>, enc) => {
-            acc[enc.encounter_type] = (acc[enc.encounter_type] || 0) + 1;
-            return acc;
-          }, {});
-          setEncountersByType(
-            Object.entries(typeCounts).map(([type, count]) => ({ type, count: count as number }))
-          );
-        }
-
-        // Fetch encounters by date for line chart (last 30 days)
-        const thirtyDaysAgo = subDays(new Date(), 30);
-        const { data: encDateData } = await supabase
-          .from("encounters")
-          .select("encounter_date")
-          .gte("encounter_date", thirtyDaysAgo.toISOString());
-        
-        if (encDateData) {
-          const dateCounts: Record<string, number> = {};
-          for (let i = 0; i < 30; i++) {
-            const date = format(subDays(new Date(), i), "MMM d");
-            dateCounts[date] = 0;
-          }
-          encDateData.forEach((enc) => {
-            const date = format(new Date(enc.encounter_date), "MMM d");
-            if (dateCounts[date] !== undefined) {
-              dateCounts[date]++;
-            }
-          });
-          setEncountersByDate(
-            Object.entries(dateCounts)
-              .map(([date, count]) => ({ date, count }))
-              .reverse()
-          );
-        }
-
-        // Fetch patients by age group
-        const { data: patientAgeData } = await supabase
-          .from("patients")
-          .select("date_of_birth")
-          .is("deleted_at", null);
-        
-        if (patientAgeData) {
-          const ageGroups: Record<string, number> = {
-            "0-17": 0,
-            "18-34": 0,
-            "35-49": 0,
-            "50-64": 0,
-            "65+": 0,
-          };
-          patientAgeData.forEach((p) => {
-            const age = Math.floor((Date.now() - new Date(p.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-            if (age < 18) ageGroups["0-17"]++;
-            else if (age < 35) ageGroups["18-34"]++;
-            else if (age < 50) ageGroups["35-49"]++;
-            else if (age < 65) ageGroups["50-64"]++;
-            else ageGroups["65+"]++;
-          });
-          setPatientsByAge(
-            Object.entries(ageGroups).map(([range, count]) => ({ range, count }))
-          );
-        }
-
-        // Fetch vital signs trends
-        const { data: vitalsData } = await supabase
-          .from("vital_signs")
-          .select("recorded_at, bp_systolic, bp_diastolic, heart_rate")
-          .not("bp_systolic", "is", null)
-          .order("recorded_at", { ascending: false })
-          .limit(100);
-        
-        if (vitalsData && vitalsData.length > 0) {
-          const vitalsByDate: Record<string, { systolic: number[]; diastolic: number[]; hr: number[] }> = {};
-          vitalsData.forEach((v) => {
-            const date = format(new Date(v.recorded_at), "MMM d");
-            if (!vitalsByDate[date]) {
-              vitalsByDate[date] = { systolic: [], diastolic: [], hr: [] };
-            }
-            if (v.bp_systolic) vitalsByDate[date].systolic.push(v.bp_systolic);
-            if (v.bp_diastolic) vitalsByDate[date].diastolic.push(v.bp_diastolic);
-            if (v.heart_rate) vitalsByDate[date].hr.push(v.heart_rate);
-          });
-          const trends = Object.entries(vitalsByDate).map(([date, data]) => ({
-            date,
-            avgBpSystolic: data.systolic.length ? Math.round(data.systolic.reduce((a, b) => a + b, 0) / data.systolic.length) : 0,
-            avgBpDiastolic: data.diastolic.length ? Math.round(data.diastolic.reduce((a, b) => a + b, 0) / data.diastolic.length) : 0,
-            avgHeartRate: data.hr.length ? Math.round(data.hr.reduce((a, b) => a + b, 0) / data.hr.length) : 0,
-          }));
-          setVitalTrends(trends.slice(0, 14).reverse());
-        }
-
-        // Fetch recent encounters
-        const { data: recentEnc } = await supabase
-          .from("encounters")
-          .select(`
-            id, encounter_date, encounter_type, status, chief_complaint,
-            patients(first_name, last_name)
-          `)
-          .order("encounter_date", { ascending: false })
-          .limit(5);
-        
-        setRecentEncounters((recentEnc as RecentEncounter[]) ?? []);
-
-        // Fetch prescriptions by status
-        const { data: rxData } = await supabase
-          .from("prescriptions")
-          .select("status");
-        
-        if (rxData) {
-          const statusCounts = rxData.reduce((acc: Record<string, number>, rx) => {
-            acc[rx.status] = (acc[rx.status] || 0) + 1;
-            return acc;
-          }, {});
-          setPrescriptionsByStatus(
-            Object.entries(statusCounts).map(([status, count]) => ({ status, count: count as number }))
-          );
-        }
-
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
+    async function fetchStats() {
+      const [patientsRes, encountersRes, breakGlassRes, apptsRes, medsRes, labsRes, providersRes, allergiesRes] = await Promise.all([
+        supabase.from("patients").select("id", { count: "exact", head: true }),
+        supabase.from("encounters").select("id", { count: "exact", head: true }),
+        supabase.from("break_glass_logs").select("id", { count: "exact", head: true }).is("reviewed_at", null),
+        supabase.from("appointments").select("id", { count: "exact", head: true }),
+        supabase.from("medications").select("id", { count: "exact", head: true }).eq("status", "active"),
+        supabase.from("lab_orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("providers").select("id", { count: "exact", head: true }),
+        supabase.from("allergies").select("id", { count: "exact", head: true }),
+      ]);
+      setStats({
+        patients: patientsRes.count ?? 0, encounters: encountersRes.count ?? 0,
+        pendingReviews: breakGlassRes.count ?? 0, appointments: apptsRes.count ?? 0,
+        medications: medsRes.count ?? 0, labOrders: labsRes.count ?? 0,
+        providers: providersRes.count ?? 0, allergies: allergiesRes.count ?? 0,
+      });
+      setLoading(false);
     }
-    
-    fetchDashboardData();
+    fetchStats();
   }, []);
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good Morning";
+    if (h < 17) return "Good Afternoon";
+    return "Good Evening";
+  };
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex h-full items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-6 bg-muted/20 min-h-full">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome to the EHR Staff Portal</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{greeting()}</h1>
+          <p className="text-sm text-muted-foreground mt-1">Here's an overview of your healthcare facility today.</p>
         </div>
-        <Badge variant="outline" className="text-sm">
-          <Clock className="h-3 w-3 mr-1" />
-          {format(new Date(), "EEEE, MMMM d, yyyy")}
-        </Badge>
-      </div>
-      
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.patients}</div>
-            <p className="text-xs text-muted-foreground">Active records</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Encounters</CardTitle>
-            <Stethoscope className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.encounters}</div>
-            <p className="text-xs text-muted-foreground">Total visits</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Appointments</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.appointments}</div>
-            <p className="text-xs text-muted-foreground">Upcoming</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Active Allergies</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.allergies}</div>
-            <p className="text-xs text-muted-foreground">Documented</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Prescriptions</CardTitle>
-            <Pill className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.prescriptions}</div>
-            <p className="text-xs text-muted-foreground">Total orders</p>
-          </CardContent>
-        </Card>
-
-        {hasRole("compliance_officer") && (
-          <Card className="border-yellow-500/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingReviews}</div>
-              <p className="text-xs text-muted-foreground">Break-glass access</p>
-            </CardContent>
-          </Card>
-        )}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-2">
+            <Bell className="h-4 w-4" /> <span className="hidden sm:inline">Notifications</span>
+            <span className="ml-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-medium">3</span>
+          </Button>
+          <Link to="/staff/patients">
+            <Button size="sm" className="gap-2 bg-[#2563EB] hover:bg-blue-700">
+              <UserPlus className="h-4 w-4" /> Add Patient
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      {/* Charts Row 1 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Encounters Over Time */}
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Encounters Over Time
-            </CardTitle>
-            <CardDescription>Daily encounter volume (last 30 days)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={encountersByDate}>
-                  <defs>
-                    <linearGradient id="colorEncounters" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                  <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))", 
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px"
-                    }} 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="count" 
-                    stroke="hsl(var(--primary))" 
-                    fillOpacity={1} 
-                    fill="url(#colorEncounters)" 
-                    name="Encounters"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+      {/* Stats Row */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Total Patients" value={stats.patients} icon={Users} trend="up" trendValue="+12% this month" iconBg="bg-blue-50" />
+        <StatCard title="Encounters" value={stats.encounters} icon={Stethoscope} trend="up" trendValue="+8% this week" iconBg="bg-emerald-50" />
+        <StatCard title="Active Medications" value={stats.medications} icon={Pill} subtitle={`${stats.allergies} allergies flagged`} iconBg="bg-purple-50" />
+        <StatCard title="Pending Labs" value={stats.labOrders} icon={FlaskConical} trend={stats.labOrders > 5 ? "up" : "down"} trendValue={stats.labOrders > 5 ? "Needs attention" : "On track"} iconBg="bg-amber-50" />
+      </div>
+
+      {/* Compliance + Reviews Alert */}
+      {hasRole("compliance_officer") && stats.pendingReviews > 0 && (
+        <Card className="border-amber-300/60 bg-amber-50/50">
+          <CardContent className="py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Break-Glass Access Reviews Pending</p>
+                <p className="text-xs text-muted-foreground">{stats.pendingReviews} emergency access event{stats.pendingReviews !== 1 ? "s" : ""} require your review.</p>
+              </div>
             </div>
+            <Link to="/staff/compliance">
+              <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100">
+                Review Now <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Charts Row */}
+      <div className="grid gap-4 lg:grid-cols-7">
+        {/* Encounter Trends */}
+        <Card className="lg:col-span-4">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Patient Encounters</CardTitle>
+                <CardDescription>Daily visit trends this week</CardDescription>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-medium">
+                <TrendingUp className="h-3 w-3" /> +14.2%
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={encounterTrend}>
+                <defs>
+                  <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 13 }} />
+                <Area type="monotone" dataKey="visits" stroke="#2563EB" strokeWidth={2.5} fillOpacity={1} fill="url(#colorVisits)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Encounters by Type */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Encounters by Type</CardTitle>
-            <CardDescription>Distribution of visit types</CardDescription>
+        {/* Appointment Types Pie */}
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Appointment Types</CardTitle>
+            <CardDescription>Distribution this month</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
+          <CardContent className="flex items-center justify-center">
+            <div className="w-full flex flex-col items-center">
+              <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
-                  <Pie
-                    data={encountersByType}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="count"
-                    nameKey="type"
-                    label={({ type, percent }) => `${type} ${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
-                  >
-                    {encountersByType.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
+                  <Pie data={appointmentTypes} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
+                    {appointmentTypes.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))", 
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px"
-                    }} 
-                  />
+                  <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 13 }} />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Patients by Age */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Patients by Age Group</CardTitle>
-            <CardDescription>Patient demographics</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={patientsByAge} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis type="number" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                  <YAxis dataKey="range" type="category" tick={{ fontSize: 12 }} className="text-muted-foreground" width={50} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))", 
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px"
-                    }} 
-                  />
-                  <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} name="Patients" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Vital Signs Trends */}
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Vital Signs Trends
-            </CardTitle>
-            <CardDescription>Average blood pressure and heart rate</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              {vitalTrends.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={vitalTrends}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                    <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))", 
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
-                      }} 
-                    />
-                    <Line type="monotone" dataKey="avgBpSystolic" stroke="hsl(var(--destructive))" strokeWidth={2} name="Systolic BP" dot={false} />
-                    <Line type="monotone" dataKey="avgBpDiastolic" stroke="hsl(var(--chart-4))" strokeWidth={2} name="Diastolic BP" dot={false} />
-                    <Line type="monotone" dataKey="avgHeartRate" stroke="hsl(var(--chart-3))" strokeWidth={2} name="Heart Rate" dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No vital signs data available
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Bottom Row */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Recent Encounters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Recent Encounters
-            </CardTitle>
-            <CardDescription>Latest patient visits</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentEncounters.length > 0 ? (
-                recentEncounters.map((enc) => (
-                  <div key={enc.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div>
-                      <p className="font-medium">
-                        {enc.patients?.last_name}, {enc.patients?.first_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {enc.chief_complaint || enc.encounter_type}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant={enc.status === "completed" ? "default" : "secondary"}>
-                        {enc.status}
-                      </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(enc.encounter_date), "MMM d, h:mm a")}
-                      </p>
-                    </div>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 mt-2">
+                {appointmentTypes.map((item, i) => (
+                  <div key={item.name} className="flex items-center gap-2">
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[i] }} />
+                    <span className="text-xs text-muted-foreground">{item.name} ({item.value})</span>
                   </div>
-                ))
-              ) : (
-                <p className="text-center text-muted-foreground py-8">No recent encounters</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Prescriptions by Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Pill className="h-5 w-5" />
-              Prescription Status
-            </CardTitle>
-            <CardDescription>Current prescription distribution</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              {prescriptionsByStatus.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={prescriptionsByStatus}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="status" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                    <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))", 
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
-                      }} 
-                    />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]} name="Prescriptions">
-                      {prescriptionsByStatus.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={
-                            entry.status === "sent" ? "hsl(var(--chart-2))" :
-                            entry.status === "pending" ? "hsl(var(--chart-4))" :
-                            entry.status === "cancelled" ? "hsl(var(--destructive))" :
-                            "hsl(var(--primary))"
-                          } 
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No prescription data available
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks based on your role</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2 md:grid-cols-3">
-            {hasRole("provider") && (
-              <>
-                <div className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
-                  <Users className="h-5 w-5 mb-2 text-primary" />
-                  <p className="font-medium">View Patients</p>
-                  <p className="text-sm text-muted-foreground">Access patient records</p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
-                  <Stethoscope className="h-5 w-5 mb-2 text-primary" />
-                  <p className="font-medium">New Encounter</p>
-                  <p className="text-sm text-muted-foreground">Start a new visit</p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
-                  <Pill className="h-5 w-5 mb-2 text-primary" />
-                  <p className="font-medium">E-Prescribe</p>
-                  <p className="text-sm text-muted-foreground">Write a prescription</p>
-                </div>
-              </>
-            )}
-            {hasRole("admin") && (
-              <div className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
-                <Users className="h-5 w-5 mb-2 text-primary" />
-                <p className="font-medium">Manage Users</p>
-                <p className="text-sm text-muted-foreground">User administration</p>
+      {/* Monthly Patients Bar Chart + Upcoming Appointments */}
+      <div className="grid gap-4 lg:grid-cols-7">
+        <Card className="lg:col-span-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Patient Volume</CardTitle>
+            <CardDescription>New vs Returning — Last 6 months</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={monthlyPatients} barGap={4}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 13 }} />
+                <Bar dataKey="new" fill="#2563EB" radius={[4, 4, 0, 0]} name="New" />
+                <Bar dataKey="returning" fill="#93C5FD" radius={[4, 4, 0, 0]} name="Returning" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Today's Appointments */}
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Today's Schedule</CardTitle>
+                <CardDescription>{upcomingAppts.length} appointments</CardDescription>
               </div>
-            )}
-            {hasRole("compliance_officer") && (
-              <div className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
-                <FileText className="h-5 w-5 mb-2 text-primary" />
-                <p className="font-medium">Audit Logs</p>
-                <p className="text-sm text-muted-foreground">Review access logs</p>
+              <Link to="/staff/appointments">
+                <Button variant="ghost" size="sm" className="text-xs">View All</Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {upcomingAppts.map((appt) => (
+              <div key={appt.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center text-xs font-semibold text-[#2563EB] shrink-0">
+                  {appt.patient.split(" ").map(n => n[0]).join("")}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{appt.patient}</p>
+                  <p className="text-xs text-muted-foreground">{appt.type} • {appt.time}</p>
+                </div>
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
+                  appt.status === "Checked In" ? "bg-emerald-100 text-emerald-700" :
+                  appt.status === "Confirmed" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"
+                }`}>{appt.status}</span>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bottom Row: Recent Activity + Quick Actions + System Health */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Recent Activity */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Recent Activity</CardTitle>
+            <CardDescription>Latest actions across the system</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentActivity.map((item) => (
+              <div key={item.id} className="flex items-start gap-3">
+                <div className={`mt-0.5 h-8 w-8 rounded-lg bg-muted/60 flex items-center justify-center shrink-0`}>
+                  <item.icon className={`h-4 w-4 ${item.color}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{item.action}</p>
+                  <p className="text-xs text-muted-foreground truncate">{item.name}</p>
+                  <p className="text-[10px] text-muted-foreground/70">{item.time}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions Grid */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Quick Actions</CardTitle>
+            <CardDescription>Navigate to key areas</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-2">
+            {[
+              { label: "Patients", icon: Users, href: "/staff/patients", color: "text-blue-600 bg-blue-50" },
+              { label: "Encounters", icon: Stethoscope, href: "/staff/encounters", color: "text-emerald-600 bg-emerald-50" },
+              { label: "Prescriptions", icon: Pill, href: "/staff/prescriptions", color: "text-purple-600 bg-purple-50" },
+              { label: "Vital Signs", icon: Activity, href: "/staff/vital-signs", color: "text-rose-600 bg-rose-50" },
+              { label: "Audit Logs", icon: FileText, href: "/staff/audit-logs", color: "text-amber-600 bg-amber-50" },
+              { label: "Compliance", icon: ClipboardList, href: "/staff/compliance", color: "text-cyan-600 bg-cyan-50" },
+            ].map((action) => (
+              <Link key={action.label} to={action.href}>
+                <div className="flex flex-col items-center gap-2 p-3 rounded-xl border hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer group">
+                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${action.color}`}>
+                    <action.icon className="h-4.5 w-4.5" />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">{action.label}</span>
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* System Health */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">System Health</CardTitle>
+            <CardDescription>Infrastructure status</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[
+              { label: "Database Uptime", value: 99.9, status: "Operational" },
+              { label: "API Response Time", value: 95, status: "42ms avg" },
+              { label: "Storage Used", value: 68, status: "6.8 / 10 GB" },
+              { label: "HIPAA Compliance", value: 100, status: "Fully Compliant" },
+            ].map((item) => (
+              <div key={item.label} className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{item.label}</span>
+                  <span className="text-xs text-muted-foreground">{item.status}</span>
+                </div>
+                <Progress value={item.value} className="h-1.5" />
+              </div>
+            ))}
+            <div className="pt-2 border-t">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                <span className="text-xs font-medium text-emerald-600">All systems operational</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Secondary Stats */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Appointments" value={stats.appointments} icon={Calendar} subtitle="Total scheduled" iconBg="bg-cyan-50" />
+        <StatCard title="Providers" value={stats.providers} icon={Heart} subtitle="Active staff" iconBg="bg-rose-50" />
+        <StatCard title="Allergies Flagged" value={stats.allergies} icon={AlertTriangle} subtitle="Across all patients" iconBg="bg-orange-50" />
+        <StatCard title="Pending Reviews" value={stats.pendingReviews} icon={Shield} trend={stats.pendingReviews > 0 ? "up" : "down"} trendValue={stats.pendingReviews > 0 ? "Action needed" : "All clear"} iconBg="bg-violet-50" />
+      </div>
     </div>
   );
 }

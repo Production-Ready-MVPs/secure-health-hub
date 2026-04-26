@@ -164,7 +164,7 @@ export default function PatientAppointments() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">My Appointments</h1>
+      <h1 className="text-2xl font-semibold mb-6">My Appointments</h1>
 
       <Tabs defaultValue="upcoming" className="space-y-4">
         <TabsList>
@@ -215,3 +215,4 @@ export default function PatientAppointments() {
     </div>
   );
 }
+

@@ -50,7 +50,7 @@ export default function PatientMedications() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">My Medications</h1>
+      <h1 className="text-2xl font-semibold mb-6">My Medications</h1>
 
       <Card>
         <CardHeader>
@@ -105,3 +105,4 @@ export default function PatientMedications() {
     </div>
   );
 }
+

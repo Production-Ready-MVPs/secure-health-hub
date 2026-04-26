@@ -11,6 +11,9 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Unauthorized from "@/pages/Unauthorized";
 import NotFound from "@/pages/NotFound";
+import Index from "@/pages/Index";
+import AboutUs from "@/pages/AboutUs";
+import Doctors from "@/pages/Doctors";
 
 // MFA pages
 import MFAEnroll from "@/pages/MFAEnroll";
@@ -54,7 +57,9 @@ const App = () => (
         <AuthProvider>
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/doctors" element={<Doctors />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/unauthorized" element={<Unauthorized />} />

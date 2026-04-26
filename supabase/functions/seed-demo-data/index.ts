@@ -197,12 +197,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { action } = await req.json();
 
@@ -307,7 +302,7 @@ serve(async (req) => {
       const providerUsers = createdUsers.filter(u => u.role === "provider");
       
       for (const user of providerUsers) {
-        const { data: provider, error: providerError } = await supabase.from("providers").upsert({
+        const { data: provider, error } = await supabase.from("providers").upsert({
           user_id: user.id,
           first_name: user.firstName,
           last_name: user.lastName,
@@ -319,11 +314,6 @@ serve(async (req) => {
           department: user.specialty?.includes("Nurse") ? "Nursing" : "Medicine",
           is_active: true
         }, { onConflict: "user_id" }).select().single();
-
-        if (providerError) {
-          console.error(`Error creating provider ${user.firstName} ${user.lastName}:`, providerError);
-          continue;
-        }
 
         if (provider) {
           providers.push({ 
@@ -373,7 +363,7 @@ serve(async (req) => {
         const birthYear = 1960 + Math.floor(Math.random() * 40);
         const dob = `${birthYear}-${String(Math.floor(1 + Math.random() * 12)).padStart(2, "0")}-${String(Math.floor(1 + Math.random() * 28)).padStart(2, "0")}`;
 
-        const { data: patient, error: patientError } = await supabase.from("patients").insert({
+        const { data: patient } = await supabase.from("patients").insert({
           user_id: userId,
           first_name: firstName,
           last_name: lastName,
@@ -391,11 +381,6 @@ serve(async (req) => {
           insurance_provider: randomItem(INSURANCE_PROVIDERS),
           insurance_policy_number: `POL${Math.floor(100000000 + Math.random() * 900000000)}`
         }).select().single();
-
-        if (patientError) {
-          console.error(`Error creating patient ${firstName} ${lastName}:`, patientError);
-          continue;
-        }
 
         if (patient) {
           patientData.push({ userId, patientId: patient.id, firstName, lastName });
@@ -423,7 +408,7 @@ serve(async (req) => {
         
         const dob = `${birthYear}-${String(Math.floor(1 + Math.random() * 12)).padStart(2, "0")}-${String(Math.floor(1 + Math.random() * 28)).padStart(2, "0")}`;
 
-        const { data: patient, error: patientError } = await supabase.from("patients").insert({
+        const { data: patient } = await supabase.from("patients").insert({
           first_name: firstName,
           last_name: lastName,
           date_of_birth: dob,
@@ -441,28 +426,14 @@ serve(async (req) => {
           insurance_policy_number: `POL${Math.floor(100000000 + Math.random() * 900000000)}`
         }).select().single();
 
-        if (patientError) {
-          console.error(`Error creating patient ${firstName} ${lastName}:`, patientError);
-          continue;
-        }
-
         if (patient) {
           patientData.push({ userId: "", patientId: patient.id, firstName, lastName });
         }
       }
       results.patients = patientData.length;
 
-      // Verify we have patient data before proceeding
-      if (patientData.length === 0) {
-        throw new Error("Failed to create any patients - cannot proceed with seeding");
-      }
-
       // Step 5: Create patient-provider assignments
       const physicianProviders = providers.filter(p => !p.lastName.includes("Santos") && !p.lastName.includes("Kim"));
-      
-      if (physicianProviders.length === 0) {
-        throw new Error("No physician providers found - cannot proceed with seeding");
-      }
       
       for (const patient of patientData) {
         // Assign primary physician
@@ -489,9 +460,8 @@ serve(async (req) => {
 
       // Step 6: Create allergies (for ~15 patients, 3-4 with drug allergies)
       let allergyCount = 0;
-      for (let i = 0; i < Math.min(15, patientData.length); i++) {
+      for (let i = 0; i < 15; i++) {
         const patient = patientData[i];
-        if (!patient) continue;
         const numAllergies = Math.floor(1 + Math.random() * 3);
         const usedAllergens = new Set<string>();
         
@@ -1003,9 +973,8 @@ serve(async (req) => {
       }
 
       // 5 patients with Release of Information
-      for (let i = 0; i < Math.min(5, patientData.length); i++) {
+      for (let i = 0; i < 5; i++) {
         const patient = patientData[i];
-        if (!patient) continue;
         await supabase.from("consent_records").insert({
           patient_id: patient.patientId,
           consent_type: "Release of Information",
@@ -1017,9 +986,8 @@ serve(async (req) => {
       }
 
       // 3 patients with telemedicine consent
-      for (let i = 5; i < Math.min(8, patientData.length); i++) {
+      for (let i = 5; i < 8; i++) {
         const patient = patientData[i];
-        if (!patient) continue;
         await supabase.from("consent_records").insert({
           patient_id: patient.patientId,
           consent_type: "Telemedicine Consent",
@@ -1030,16 +998,14 @@ serve(async (req) => {
       }
 
       // 1 revoked consent
-      if (patientData.length > 10) {
-        await supabase.from("consent_records").insert({
-          patient_id: patientData[10].patientId,
-          consent_type: "Release of Information",
-          granted_at: randomDate(new Date(2023, 0, 1), new Date(2024, 0, 1)),
-          revoked_at: randomDate(new Date(2024, 6, 1), new Date()),
-          purpose: "Release records to insurance - REVOKED"
-        });
-        consentCount++;
-      }
+      await supabase.from("consent_records").insert({
+        patient_id: patientData[10].patientId,
+        consent_type: "Release of Information",
+        granted_at: randomDate(new Date(2023, 0, 1), new Date(2024, 0, 1)),
+        revoked_at: randomDate(new Date(2024, 6, 1), new Date()),
+        purpose: "Release records to insurance - REVOKED"
+      });
+      consentCount++;
       results.consents = consentCount;
 
       // Step 17: Create PHI access logs (200+ entries)

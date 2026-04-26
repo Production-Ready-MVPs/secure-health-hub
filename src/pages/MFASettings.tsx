@@ -66,7 +66,7 @@ export default function MFASettings() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Security Settings</h1>
+      <h1 className="text-2xl font-semibold mb-6">Security Settings</h1>
 
       <div className="max-w-2xl space-y-6">
         {/* MFA Status Card */}
@@ -185,3 +185,4 @@ export default function MFASettings() {
     </div>
   );
 }
+

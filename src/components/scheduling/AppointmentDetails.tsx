@@ -99,7 +99,7 @@ export function AppointmentDetails({ appointment, onUpdate, onClose }: Appointme
   const updateStatus = async (newStatus: string, reason?: string) => {
     setUpdating(true);
     try {
-      const updateData: Record<string, any> = { status: newStatus };
+      const updateData: any = { status: newStatus };
 
       if (newStatus === "checked_in") {
         updateData.check_in_time = new Date().toISOString();

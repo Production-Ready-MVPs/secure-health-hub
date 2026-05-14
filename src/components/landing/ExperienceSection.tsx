@@ -38,9 +38,9 @@ export const ExperienceSection = () => {
     show: { 
       opacity: 1, 
       y: 0, 
-      transition: { duration: 0.5, ease: "easeOut" } 
+      transition: { duration: 0.5, ease: "easeOut" as const } 
     }
-  };
+  } as const;
 
   return (
     <section className="w-full bg-white py-12 md:py-16 overflow-hidden">
